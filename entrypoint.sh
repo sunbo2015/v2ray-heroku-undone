@@ -15,6 +15,8 @@ if [[ -z "${V2_QR_Path}" ]]; then
   V2_QR_Code="1234"
 fi
 
+root_dir=/root/workplace/proxy/
+
 rm -rf /etc/localtime
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 date -R
