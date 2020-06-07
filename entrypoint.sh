@@ -23,35 +23,50 @@ SYS_Bit="$(getconf LONG_BIT)"
 [[ "$SYS_Bit" == '32' ]] && BitVer='_linux_386.tar.gz'
 [[ "$SYS_Bit" == '64' ]] && BitVer='_linux_amd64.tar.gz'
 
+# download v2ray core 
 if [ "$VER" = "latest" ]; then
   V_VER=`curl -s -L "https://api.github.com/repos/v2ray/v2ray-core/releases/latest" | jq -r ".tag_name"`
 else
   V_VER="v$VER"
 fi
 
-mkdir /v2raybin
-cd /v2raybin
-wget --no-check-certificate -qO 'v2ray.zip' "https://github.com/v2ray/v2ray-core/releases/download/$V_VER/v2ray-linux-$SYS_Bit.zip"
-unzip v2ray.zip -d /v2raybin/v2ray-$V_VER-linux-$SYS_Bit/
-rm -rf v2ray.zip
-chmod +x /v2raybin/v2ray-$V_VER-linux-$SYS_Bit/*
+v2raydir=${root_dir}/v2raybin
+if [ -d ${v2raydir} ]; then
+	mkdir -p ${v2raydir}
+fi
+cd ${v2raydir}
 
+wget --no-check-certificate -qO 'v2ray.zip' "https://github.com/v2ray/v2ray-core/releases/download/$V_VER/v2ray-linux-$SYS_Bit.zip"
+unzip v2ray.zip -d ${v2raydir}/v2ray-$V_VER-linux-$SYS_Bit/
+rm -rf v2ray.zip
+chmod +x ${v2raydir}/v2ray-$V_VER-linux-$SYS_Bit/*
+
+# download caddy 
 C_VER=`wget -qO- "https://api.github.com/repos/mholt/caddy/releases/latest" | jq -r ".tag_name"`
-mkdir /caddybin
-cd /caddybin
+
+caddydir=${root_dir}/v2raybin
+if [ -d ${caddydir} ]; then
+	mkdir -p ${caddydir}
+fi
+cd ${caddydir}
+
 wget --no-check-certificate -qO 'caddy.tar.gz' "https://github.com/mholt/caddy/releases/download/$C_VER/caddy_$C_VER$BitVer"
 tar xvf caddy.tar.gz
 rm -rf caddy.tar.gz
 chmod +x caddy
 cd /root
-mkdir /wwwroot
-cd /wwwroot
+
+wwwdir=${root_dir}/wwwroot
+if [ -d ${wwwdir} ]; then
+	mkdir -p ${wwwdir}
+fi
+cd ${wwwdir}
 
 wget --no-check-certificate -qO 'demo.tar.gz' "https://github.com/ki8852/v2ray-heroku-undone/raw/master/demo.tar.gz"
 tar xvf demo.tar.gz
 rm -rf demo.tar.gz
 
-cat <<-EOF > /v2raybin/v2ray-$V_VER-linux-$SYS_Bit/config.json
+cat <<-EOF > ${v2raydir}/v2ray-$V_VER-linux-$SYS_Bit/config.json
 {
     "log":{
         "loglevel":"warning"
@@ -84,10 +99,10 @@ cat <<-EOF > /v2raybin/v2ray-$V_VER-linux-$SYS_Bit/config.json
 }
 EOF
 
-cat <<-EOF > /caddybin/Caddyfile
+cat <<-EOF > ${caddydir}/Caddyfile
 http://0.0.0.0:${PORT}
 {
-	root /wwwroot
+	root ${wwwdir}
 	index index.html
 	timeouts none
 	proxy ${V2_Path} localhost:2333 {
@@ -97,7 +112,7 @@ http://0.0.0.0:${PORT}
 }
 EOF
 
-cat <<-EOF > /v2raybin/vmess.json 
+cat <<-EOF > ${v2raydir}/vmess.json 
 {
     "v": "2",
     "ps": "${AppName}.herokuapp.com",
@@ -116,14 +131,12 @@ EOF
 if [ "$AppName" = "no" ]; then
   echo "不生成二维码"
 else
-  mkdir /wwwroot/$V2_QR_Path
-  vmess="vmess://$(cat /v2raybin/vmess.json | base64 -w 0)" 
+  mkdir ${wwwdir}/$V2_QR_Path
+  vmess="vmess://$(cat ${v2raydir}/vmess.json | base64 -w 0)" 
   Linkbase64=$(echo -n "${vmess}" | tr -d '\n' | base64 -w 0) 
-  echo "${Linkbase64}" | tr -d '\n' > /wwwroot/$V2_QR_Path/index.html
-  echo -n "${vmess}" | qrencode -s 6 -o /wwwroot/$V2_QR_Path/v2.png
+  echo "${Linkbase64}" | tr -d '\n' > ${wwwdir}/$V2_QR_Path/index.html
+  echo -n "${vmess}" | qrencode -s 6 -o ${wwwdir}/$V2_QR_Path/v2.png
 fi
 
-cd /v2raybin/v2ray-$V_VER-linux-$SYS_Bit
-./v2ray &
-cd /caddybin
-./caddy -conf="Caddyfile"
+cd ${v2raydir}/v2ray-$V_VER-linux-$SYS_Bit && ./v2ray &
+cd ${caddydir} && ./caddy -conf="Caddyfile"
