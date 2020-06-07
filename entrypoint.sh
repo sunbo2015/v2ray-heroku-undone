@@ -24,7 +24,7 @@ SYS_Bit="$(getconf LONG_BIT)"
 [[ "$SYS_Bit" == '64' ]] && BitVer='_linux_amd64.tar.gz'
 
 if [ "$VER" = "latest" ]; then
-  V_VER=`wget -qO- "https://api.github.com/repos/v2ray/v2ray-core/releases/latest" | jq -r ".tag_name"
+  V_VER=`curl -s "https://api.github.com/repos/v2ray/v2ray-core/releases/latest" | jq -r ".tag_name"
 else
   V_VER="v$VER"
 fi
@@ -36,7 +36,7 @@ unzip v2ray.zip -d /v2raybin/v2ray-$V_VER-linux-$SYS_Bit/
 rm -rf v2ray.zip
 chmod +x /v2raybin/v2ray-$V_VER-linux-$SYS_Bit/*
 
-C_VER=`wget -qO- "https://api.github.com/repos/mholt/caddy/releases/latest" | jq -r ".tag_name"
+C_VER=`curl -s "https://api.github.com/repos/mholt/caddy/releases/latest" | jq -r ".tag_name"
 mkdir /caddybin
 cd /caddybin
 wget --no-check-certificate -qO 'caddy.tar.gz' "https://github.com/mholt/caddy/releases/download/$C_VER/caddy_$C_VER$BitVer"
